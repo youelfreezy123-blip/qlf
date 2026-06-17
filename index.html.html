@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DouanePro | Calculateur de Liquidation</title>
+    <!-- Tailwind CSS pour un design premium -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-slate-200 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">🛃 DouanePro</h1>
+                <p class="text-slate-500 mt-1">Interface de liquidation douanière automatisée (Normes UEMOA - Client Side)</p>
+            </div>
+            <span class="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-semibold border border-emerald-100">GitHub Pages Ready</span>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Section Formulaire Saisie (Gauche) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Choix Articles -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">⏱️ Étape 1 : Nombre d'articles</h2>
+                    <div class="flex gap-4">
+                        <button onclick="setChoix(1)" id="btn-1" class="flex-1 py-3 rounded-xl border-2 font-bold transition-all">1 Article Unique</button>
+                        <button onclick="setChoix(2)" id="btn-2" class="flex-1 py-3 rounded-xl border-2 font-bold transition-all">2 Articles Distincts</button>
+                    </div>
+                </div>
+
+                <!-- Conteneur Dynamique des Articles -->
+                <div class="card p-6" id="articles-container"></div>
+
+                <!-- Assurance & Fret -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">🛡️ Étape 3 : Fret & Assurance Transport</h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Mode de calcul de l'assurance</label>
+                            <select id="mode_ass" onchange="toggleAssuranceFields()" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="1">1. J'ai la valeur de l'assurance (Maritime / Locale)</option>
+                                <option value="2">2. Calculer avec CFR + Majoration %</option>
+                                <option value="3">3. Calculer avec le CIF</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600">Valeur du Fret Global (F CFA)</label>
+                                <input type="number" id="fret" value="0" class="w-full mt-1 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600">Assurance Locale (F CFA)</label>
+                                <input type="number" id="ass_locale" value="0" class="w-full mt-1 border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Champs Dynamiques Assurance -->
+                        <div id="dynamic-ass-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Bouton d'action -->
+                <button onclick="calculateLiquidation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 text-lg">
+                    🔥 CALCULER LA LIQUIDATION DOUANIÈRE
+                </button>
+            </div>
+
+            <!-- Section Panneau des Résultats (Droite) -->
+            <div class="lg:col-span-1">
+                <div class="card p-6 sticky top-8 border-t-4 border-blue-600 bg-slate-50/50">
+                    <h2 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">🧾 Rapport de Calcul</h2>
+
+                    <div id="results-display" class="space-y-6">
+                        <div class="text-center py-12 text-slate-400">
+                            <p class="text-4xl mb-2">📊</p>
+                            <p class="text-sm">Renseignez les champs et cliquez sur Calculer pour générer le bilan.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let choixActuel = 1;
+
+        // Étape 1 : Gestion du nombre d'articles
+        function setChoix(n) {
+            choixActuel = n;
+            document.getElementById('btn-1').className = n === 1 ? 'flex-1 py-3 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-bold' : 'flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 font-medium';
+            document.getElementById('btn-2').className = n === 2 ? 'flex-1 py-3 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-700 font-bold' : 'flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-500 bg-white hover:bg-slate-50 font-medium';
+            renderArticlesForm();
+        }
+
+        // Étape 2 : Rendu dynamique des formulaires articles
+        function renderArticlesForm() {
+            const container = document.getElementById('articles-container');
+            let html = '<h2 class="text-lg font-bold text-slate-800 mb-4">📦 Étape 2 : Saisie des Articles & Configuration Fiscale</h2>';
+
+            for (let i = 1; i <= choixActuel; i++) {
+                html += `
+                <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <h3 class="font-bold text-blue-700 mb-3 flex items-center gap-2">📦 ${choixActuel === 1 ? 'Article Unique' : 'Article ' + i}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500">FOB Unitaire</label>
+                            <input type="number" id="fob_u_${i}" value="0" class="w-full mt-1 border border-slate-300 rounded-lg p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500">Nombre de Colis</label>
+                            <input type="number" id="qty_${i}" value="0" class="w-full mt-1 border border-slate-300 rounded-lg p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500">Poids Brut (kg)</label>
+                            <input type="number" id="poids_${i}" value="0" step="0.1" class="w-full mt-1 border border-slate-300 rounded-lg p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500" ${choixActuel === 1 ? 'disabled placeholder="Non requis"' : ''}>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-200/60">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500">Catégorie de Droits de Douane</label>
+                            <select id="cat_${i}" class="w-full mt-1 border border-slate-300 rounded-lg p-2 bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="0">Catégorie 0 (0%)</option>
+                                <option value="0.05">Catégorie 1 (5%)</option>
+                                <option value="0.10">Catégorie 2 (10%)</option>
+                                <option value="0.20">Catégorie 3 (20%)</option>
+                                <option value="0.35">Catégorie 4 (35%)</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col justify-end space-y-2 pb-1">
+                            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                <input type="checkbox" id="assise_check_${i}" onchange="toggleAssiseInput(${i})" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                Ajouter le Droit d'Assise ?
+                            </label>
+                            <div id="assise_val_container_${i}" class="hidden">
+                                <input type="number" id="assise_taux_${i}" value="5" class="w-24 border border-slate-300 rounded-lg p-1 text-sm inline-block outline-none focus:ring-2 focus:ring-blue-500"> % taux d'assise
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                <input type="checkbox" id="promad_${i}" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                Ajouter la taxe PROMAD (2%) ?
+                            </label>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function toggleAssiseInput(i) {
+            const container = document.getElementById(`assise_val_container_${i}`);
+            const checkbox = document.getElementById(`assise_check_${i}`);
+            if (checkbox.checked) container.classList.remove('hidden');
+            else container.classList.add('hidden');
+        }
+
+        // Étape 3 : Gestion dynamique de la section assurance
+        function toggleAssuranceFields() {
+            const mode = document.getElementById('mode_ass').value;
+            const target = document.getElementById('dynamic-ass-fields');
+
+            if (mode === "1") {
+                target.innerHTML = `
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-slate-600">Assurance Maritime / Directe (F CFA)</label>
+                        <input type="number" id="ass_maritime" value="0" class="w-full mt-1 border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>`;
+            } else {
+                target.innerHTML = `
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600">Pourcentage simple (%)</label>
+                        <input type="number" id="p_simple" value="4" step="0.01" class="w-full mt-1 border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600">Pourcentage majoré (%)</label>
+                        <input type="number" id="p_maj" value="10" step="0.01" class="w-full mt-1 border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>`;
+            }
+        }
+
+        // --- CORE LOGIC : LE MOTEUR DE CALCUL (ANCIENNEMENT LE BACKEND PYTHON) ---
+        function liquidationLogic(caf, config) {
+            const dd = caf * config.taux_dd;
+            const rs = caf * 0.01;
+            const pcs = caf * 0.008;
+            const pc_cdao = caf * 0.005;
+            const cosec = caf * 0.004;
+
+            const da = config.taux_assise > 0 ? (caf + dd + rs) * config.taux_assise : 0.0;
+            const promad = config.promad ? caf * 0.02 : 0.0;
+
+            const assiette_tva_bic = caf + dd + rs + da;
+            const tva = assiette_tva_bic * 0.18;
+            const bic = assiette_tva_bic * 0.03;
+
+            const mdt = dd + rs + pcs + pc_cdao + da + cosec + promad + tva + bic;
+
+            return {
+                elements: [
+                    { label: "Valeur en Douane (CAF)", val: caf },
+                    { label: "Droit de Douane (DD)", val: dd },
+                    { label: "Redevance Statistique (RS)", val: rs },
+                    { label: "PCS (Solidarité)", val: pcs },
+                    { label: "Prélèvement CDAO", val: pc_cdao },
+                    { label: "Droit d'Assise", val: da },
+                    { label: "COSEC", val: cosec },
+                    { label: "PROMAD", val: promad },
+                    { label: "TVA (18%)", val: tva },
+                    { label: "BIC (3%)", val: bic }
+                ],
+                total: Math.round(mdt)
+            };
+        }
+
+        function calculateLiquidation() {
+            let totalFob = 0;
+            let totalPoids = 0;
+            let articles = [];
+            let configs = [];
+
+            // Récupération des données du formulaire
+            for (let i = 1; i <= choixActuel; i++) {
+                const unitaire = parseFloat(document.getElementById(`fob_u_${i}`).value) || 0;
+                const qte = parseFloat(document.getElementById(`qty_${i}`).value) || 0;
+                const fob_art = unitaire * qte;
+                const poids_art = parseFloat(document.getElementById(`poids_${i}`).value) || 0;
+
+                totalFob += fob_art;
+                totalPoids += poids_art;
+
+                const hasAssise = document.getElementById(`assise_check_${i}`).checked;
+                const tauxAssise = hasAssise ? (parseFloat(document.getElementById(`assise_taux_${i}`).value) || 0) / 100 : 0;
+                const hasPromad = document.getElementById(`promad_${i}`).checked;
+
+                articles.push({ fob: fob_art, poids: poids_art });
+                configs.push({
+                    taux_dd: parseFloat(document.getElementById(`cat_${i}`).value),
+                    taux_assise: tauxAssise,
+                    promad: hasPromad
+                });
+            }
+
+            if (totalFob <= 0) {
+                alert("⚠️ Erreur : Veuillez renseigner des valeurs FOB supérieures à 0.");
+                return;
+            }
+
+            const fret_global = parseFloat(document.getElementById('fret').value) || 0;
+            const ass_locale = parseFloat(document.getElementById('ass_locale').value) || 0;
+            const mode_ass = document.getElementById('mode_ass').value;
+
+            // Étape 3 : Calcul de l'assurance globale
+            let ass_total = 0;
+            const cfr_global = totalFob + fret_global;
+
+            if (mode_ass === "1") {
+                const ass_maritime = parseFloat(document.getElementById('ass_maritime')?.value) || 0;
+                ass_total = ass_maritime + ((ass_locale + 1000) * 1.05);
+            } else {
+                const p_simple = parseFloat(document.getElementById('p_simple')?.value) || 0;
+                const p_maj = parseFloat(document.getElementById('p_maj')?.value) || 0;
+                const ass_retenue = (1 + (p_maj / 100)) * (p_simple / 100);
+
+                if (mode_ass === "2") {
+                    ass_total = (cfr_global * ass_retenue) + ((ass_locale + 1000) * 1.05);
+                } else if (mode_ass === "3") {
+                    const cif_exact = (1 - ass_retenue) > 0 ? cfr_global / (1 - ass_retenue) : cfr_global;
+                    ass_total = (cif_exact - cfr_global) + ((ass_locale + 1000) * 1.05);
+                }
+            }
+
+            // Étape 4 & 5 : Calcul final par article & Liquidation
+            let results = [];
+            let global_total = 0;
+
+            if (choixActuel === 1) {
+                const caf = totalFob + fret_global + ass_total;
+                const res = liquidationLogic(caf, configs[0]);
+                results.push(res);
+                global_total = res.total;
+            } else {
+                const p_total_secure = totalPoids <= 0 ? 1.0 : totalPoids;
+                articles.forEach((art, idx) => {
+                    const ass_art = ass_total * (art.fob / totalFob);
+                    const fret_art = fret_global * (art.poids / p_total_secure);
+                    const caf_art = art.fob + ass_art + fret_art;
+
+                    const res = liquidationLogic(caf_art, configs[idx]);
+                    results.push(res);
+                    global_total += res.total;
+                });
+            }
+
+            // Affichage graphique des résultats
+            displayResults({ results: results, global_total: global_total });
+        }
+
+        function displayResults(data) {
+            const display = document.getElementById('results-display');
+
+            let html = `
+                <div class="bg-blue-600 text-white text-center p-4 rounded-xl shadow-inner">
+                    <span class="text-xs uppercase tracking-wider opacity-80">MONTANT GLOBAL COMBINÉ À PAYER</span>
+                    <div class="text-3xl font-black mt-1">${data.global_total.toLocaleString('fr-FR')} F CFA</div>
+                </div>
+                <div class="space-y-4">
+            `;
+
+            data.results.forEach((res, index) => {
+                html += `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200">
+                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                            <h4 class="font-bold text-slate-800">${choixActuel === 1 ? 'Bilan de la Liquidation' : 'Bilan : Article ' + (index + 1)}</h4>
+                            <span class="text-blue-600 font-bold text-sm">${res.total.toLocaleString('fr-FR')} F CFA</span>
+                        </div>
+                        <div class="space-y-1.5 text-xs">
+                `;
+
+                res.elements.forEach(el => {
+                    const isCAF = el.label.includes('CAF');
+                    html += `
+                        <div class="flex justify-between ${isCAF ? 'font-semibold text-slate-900 pt-1 border-t border-dashed border-slate-200' : 'text-slate-500'}">
+                            <span>${el.label}</span>
+                            <span>${Math.round(el.val).toLocaleString('fr-FR')}</span>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            html += `</div>`;
+            display.innerHTML = html;
+        }
+
+        // Lancement par défaut au chargement de la page
+        setChoix(1);
+        toggleAssuranceFields();
+    </script>
+</body>
+</html>
